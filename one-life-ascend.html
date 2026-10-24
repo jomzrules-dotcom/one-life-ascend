@@ -2194,11 +2194,11 @@ function paintWalls(x, m, Z, arena, wall, isOuter) {
   const dm = scratch('walls', m.w, m.h), d = dm.getContext('2d');
   let fmask = null;
   if (forest) {
-    if (!groundCache.canopy) { const t = art('m2_canopy'), c = mk(t.width, t.height), cx = c.getContext('2d'); cx.filter = 'brightness(.5) saturate(1.05) hue-rotate(8deg)'; cx.drawImage(t, 0, 0); groundCache.canopy = c; }
+    if (!groundCache.canopy) { const t = art('m2_canopy'), c = mk(t.width, t.height), cx = c.getContext('2d'); cx.filter = 'brightness(.78) saturate(1.08) hue-rotate(4deg)'; cx.drawImage(t, 0, 0); groundCache.canopy = c; }
     d.fillStyle = '#fff';
     for (let j = 0; j < rows; j++) for (let i = 0; i < cols; i++) if (wall(i, j)) d.fillRect(i * TS - 1, j * TS - 2, TS + 2, TS + 2);
     fmask = crispMask(dm, 5, valueNoise(m.w, m.h, 9), 1, .5);
-    layerTex(x, groundCache.canopy, fmask, 'rgba(8,24,14,.7)');
+    layerTex(x, groundCache.canopy, fmask, 'rgba(14,40,20,.55)');
   } else if (field) {
     d.fillStyle = '#fff';
     for (let j = 0; j < rows; j++) for (let i = 0; i < cols; i++) if (wall(i, j)) d.fillRect(i * TS - 2, j * TS - 3, TS + 4, TS + 4);
@@ -2295,7 +2295,7 @@ function paintWalls(x, m, Z, arena, wall, isOuter) {
       if (dead && R() < .24 && tall(R() < .75 ? 'deadtree' + ri(0, 1) : 'stump', cx, cy)) return;
     }
     if (!back && st === 'ruin' && R() < .14) { pillar(cx, cy); return; }
-    const flt = [back ? (field ? 'brightness(0.86)' : 'brightness(0.62)') : '', !isRock && (own ? ART_FILTER[st] : BUSH_FILTER[st]) || '', isRock && dead ? 'saturate(.3) sepia(.35) brightness(.8)' : ''].join(' ').trim();
+    const flt = [back ? (field || forest ? 'brightness(0.86)' : 'brightness(0.62)') : '', !isRock && (own ? ART_FILTER[st] : BUSH_FILTER[st]) || '', isRock && dead ? 'saturate(.3) sepia(.35) brightness(.8)' : ''].join(' ').trim();
     // the filter only ever wraps one sprite draw: on the hand-drawn fallback (made of many small shapes) it would
     // run for every shape and take seconds on a big map, so the back row is shaded with a dark wash instead
     if (pr) {
@@ -5140,7 +5140,7 @@ const darkCache = {};
 function darkArt(k) {
   if (darkCache[k]) return darkCache[k];
   const a = art(k); if (!a) return null;
-  const c = mk(a.width, a.height), x = c.getContext('2d'); x.filter = 'brightness(.62) saturate(.9)'; x.drawImage(a, 0, 0); c.trunkTop = trunkTop(a);
+  const c = mk(a.width, a.height), x = c.getContext('2d'); x.filter = 'brightness(.84) saturate(.95)'; x.drawImage(a, 0, 0); c.trunkTop = trunkTop(a);
   return (darkCache[k] = c);
 }
 function drawDeco(o) {
