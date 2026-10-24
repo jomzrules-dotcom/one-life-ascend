@@ -2341,7 +2341,7 @@ const FLOORS = {
   1: { name: 'Meadow Path', hint: 'Follow the road: it winds through the whole floor and ends at the boss gate. Chests wait at the dead ends.', mix: { slime: 55, rat: 45 }, size: [108, 72], branches: 8, boss: 'elder' },
   2: { name: 'Burrow Fields', hint: 'Rats pour out of burrows. Smash a burrow and its rats stop coming back.', mix: { rat: 50, slime: 38, spore: 12 }, feat: ['burrows', 'log'], ground: 'dirt', boss: 'gnawbelly' },
   3: { name: 'Mushroom Hollow', hint: 'Spore Caps leave poison clouds when they die. Stand in the fairy ring to heal.', mix: { slime: 42, rat: 33, spore: 25 }, feat: ['fairy'], walls: 'shroom', ground: 'moss', amb: 'spore', boss: 'mycelia' },
-  4: { name: 'Riverbend', hint: 'Cross the river on the old stone bridge. Shallow fords slow you down. Split Slimes break in two.', mix: { slime: 26, split: 16, rat: 33, spore: 25 }, feat: ['river'], loot: 2, boss: 'snapjaw' },
+  4: { name: 'Riverbend', hint: 'Cross the river on the old stone bridges; there is no wading across. Split Slimes break in two.', mix: { slime: 26, split: 16, rat: 33, spore: 25 }, feat: ['river'], loot: 2, boss: 'snapjaw' },
   5: { name: 'Old Farm', hint: 'Farm lanes wind between the wheat fields. Gold elites hit harder and drop loot, and the merchant now upgrades items.', mix: { slime: 25, split: 12, rat: 35, spore: 28 }, feat: ['crates'], elites: [1, 3], loot: 2, walls: 'farm', ground: 'farm', boss: 'harvest' },
   6: { name: 'Flower Sea', hint: 'Bees and butterflies everywhere. Monsters hide in the tall grass, and Spore Caps can\'t aim at you while you stand in it.', mix: { slime: 22, split: 12, rat: 22, plague: 18, spore: 26 }, feat: ['grass', 'bloom'], elites: [1, 3], loot: 2, ground: 'lush', walls: 'bloom', amb: 'petal', critters: true, rustle: ['#f08ac0', '#ffffff', '#c890ff', '#ffd65a', '#ff9ad0'], boss: 'vespa' },
   7: { name: 'Bramble Maze', hint: 'Thorns slow you and hurt. Roll through them to take no damage.', mix: { slime: 20, split: 14, rat: 22, plague: 18, spore: 26 }, feat: ['thorns', 'tower'], elites: [2, 4], loot: 3, walls: 'hedge', ground: 'deep', branches: 12, forks: .8, amb: 'leaf', wild: true, rustle: ['#2f5a22', '#3e7a2c', '#5a9a3a', '#7a5230', '#8a3ac8'], boss: 'grimfang' },
@@ -4477,7 +4477,7 @@ function updPick(dt) {
 }
 // Respawns, Ragnarok style: every floor monster that dies comes back at its own spawn spot RESPAWN_S seconds
 // later, at the floor's current tier. It waits while the player is standing right on the spot.
-// The floor itself escalates on a clock: at 1:00 every monster turns Enraged, at 2:00 Berserk.
+// The floor itself escalates on a clock: at 1:00 every monster turns Enraged, at 2:00 Berserk, stretched up to 2.2x on big maps (startFloor).
 const RESPAWN_S = 10, TIER_AT = [0, 60, 120];
 const TIER_HP = [1, 2, 4], TIER_DMG = [1, 1.3, 1.6], TIER_SPD = [1, 1.2, 1.25];
 function upgradeMob(m, mod) {
@@ -5600,7 +5600,7 @@ A.fullscreen = () => {
 A.newRun = () => scrCreate();
 A.how = d => {
   showScreen(`<div class="panel"><div class="eyebrow">How to play</div><h2>Climb, farm, survive</h2>
-  <p>Each floor is a winding map. Follow the main path to the boss room; the hidden merchant waits at the end of a side path. Attacks fire on their own. You move, sprint and roll. A slain monster comes back to its spot 10 seconds later. At 1:00 the whole floor turns Enraged and at 2:00 Berserk: deadlier, with better loot. The boss gate stays sealed until you've slain most of the floor's monsters (the HUD counts them); then enter when you're ready. Beating the boss levels you up and saves. Loot drifts to you when you're near, and anything better than what you wear is equipped on the spot; the old piece goes in your bag. Die, and the run is gone.</p>
+  <p>Each floor is a winding map. Follow the main path to the boss room; the hidden merchant waits at the end of a side path. Attacks fire on their own. You move, sprint and roll. A slain monster comes back to its spot 10 seconds later. After a while the whole floor turns Enraged, then Berserk, sooner on small floors and later on big ones (the top bar counts down): deadlier, with better loot. The boss gate stays sealed until you've slain most of the floor's monsters (the HUD counts them); then enter when you're ready. Beating the boss levels you up and saves. Loot drifts to you when you're near, and anything better than what you wear is equipped on the spot; the old piece goes in your bag. Die, and the run is gone.</p>
   ${touch.on ? `<div class="keys">
     <kbd>Left thumb</kbd><span>Touch anywhere on the left half and drag to move</span>
     <kbd>ROLL</kbd><span>The big button: dodge roll with brief invincibility; the ring refills while it recharges</span>
