@@ -190,6 +190,9 @@ p{margin:.5em 0;line-height:1.45}
 .tb svg{width:50%;height:50%;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
 .tb.press{transform:scale(.88)}
 .tb[hidden],.tb [hidden]{display:none}
+/* hidden layers stay hidden even where their own rule sets a display (the menu backdrop is display:flex), so a
+   served copy without the published page's base styles doesn't keep an empty dark backdrop over the game */
+[hidden]{display:none!important}
 .tb.roll{right:0;bottom:0;width:calc(var(--b)*1.45);height:calc(var(--b)*1.45);border-color:#ffffff30}
 .tb.roll::before{content:"";position:absolute;inset:-5px;border-radius:50%;background:conic-gradient(var(--stam) calc(var(--st,1)*1turn),#ffffff1e 0);-webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 4px),#000 calc(100% - 3px));mask:radial-gradient(farthest-side,transparent calc(100% - 4px),#000 calc(100% - 3px))}
 .tb.roll.cd{opacity:.55}
