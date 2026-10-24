@@ -1,0 +1,151 @@
+<title>Zone 1 Boss Gallery</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;600;700&family=Silkscreen&display=swap">
+<style>
+/* Layout: a dungeon bestiary — one card per floor boss, the live animation large, its four frames as a strip below.
+   Single dark look on purpose: it matches the game's own night-dungeon palette. */
+:root {
+  --bg: #121019; --panel: #1c1826; --stage: #2a2632; --line: #3a3346;
+  --ink: #efe6d2; --dim: #a39ab4; --gold: #f2c14e; --red: #e5484d;
+  --display: 'Pixelify Sans', 'Trebuchet MS', system-ui, sans-serif;
+  --label: 'Silkscreen', ui-monospace, 'Courier New', monospace;
+  color-scheme: dark;
+}
+* { box-sizing: border-box }
+body { background: var(--bg); color: var(--ink); font: 15px/1.5 var(--display); padding-block: 28px 48px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)) }
+.wrap { max-width: 1120px; margin: 0 auto; display: grid; gap: 22px }
+header { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 14px }
+h1 { margin: 0; font-size: clamp(26px, 4vw, 38px); font-weight: 700; letter-spacing: .02em; text-wrap: balance }
+h1 span { color: var(--gold) }
+.sub { margin: 4px 0 0; color: var(--dim); max-width: 60ch }
+.modes { display: flex; gap: 6px; flex-wrap: wrap }
+.modes button { font: 12px var(--label); letter-spacing: .08em; text-transform: uppercase; color: var(--ink); background: var(--panel); border: 2px solid var(--line); padding: 7px 12px; cursor: pointer }
+.modes button[aria-pressed="true"] { border-color: var(--gold); color: var(--gold) }
+.modes button:focus-visible, .card button:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 250px), 1fr)); gap: 16px }
+.card { background: var(--panel); border: 2px solid var(--line); display: grid; grid-template-rows: auto auto 1fr auto; min-width: 0 }
+.stage { background: var(--stage); display: grid; place-items: end center; height: 236px; position: relative; overflow: hidden; border-bottom: 2px solid var(--line) }
+.stage::after { content: ""; position: absolute; left: 50%; bottom: 14px; width: 96px; height: 14px; translate: -50% 0; border-radius: 50%; background: rgba(0, 0, 0, .35); z-index: 0 }
+.stage canvas { image-rendering: pixelated; position: relative; z-index: 1; margin-bottom: 18px; max-width: 100% }
+.pose { position: absolute; top: 8px; left: 10px; font: 11px var(--label); letter-spacing: .08em; text-transform: uppercase; color: var(--dim) }
+.floor { position: absolute; top: 8px; right: 10px; font: 11px var(--label); letter-spacing: .08em; color: var(--gold) }
+.info { padding: 12px 14px 4px; display: grid; gap: 4px }
+.info h2 { margin: 0; font-size: 19px; font-weight: 600; line-height: 1.2 }
+.info p { margin: 0; color: var(--dim); font-size: 14px }
+.strip { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; padding: 12px 14px 14px; align-items: end }
+.strip figure { margin: 0; display: grid; gap: 4px; justify-items: center }
+.strip canvas { image-rendering: pixelated; background: var(--stage); width: 100%; height: auto; max-width: 100%; border: 1px solid var(--line) }
+.strip figcaption { font: 10px var(--label); letter-spacing: .06em; text-transform: uppercase; color: var(--dim); text-align: center }
+.strip figure.on canvas { border-color: var(--gold) }
+.strip figure.on figcaption { color: var(--gold) }
+footer { color: var(--dim); font-size: 13px }
+
+</style>
+
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Zone 1 <span>Boss Gallery</span></h1>
+      <p class="sub">The eight floor bosses of One Life: Ascend in their Codex-painted frames: a four-step move, the attack wind-up and strike, two poses for the signature move, and a back view for the bosses that can turn away. Shown at three times game size.</p>
+    </div>
+    <div class="modes" role="group" aria-label="Animation">
+      <button type="button" id="m-full" data-mode="full" aria-pressed="true">Full cycle</button>
+      <button type="button" id="m-move" data-mode="move" aria-pressed="false">Move</button>
+      <button type="button" id="m-attack" data-mode="attack" aria-pressed="false">Attack</button>
+      <button type="button" id="m-special" data-mode="special" aria-pressed="false">Special</button>
+      <button type="button" id="m-back" data-mode="back" aria-pressed="false">Back</button>
+    </div>
+  </header>
+  <div class="grid" id="grid"></div>
+  <footer>Move loops the four steps (frames 1, 5, 2, 6). Attack holds the wind-up while the red marker would fill, then plays the strike. Special plays the boss's own move, such as Gnawbelly digging in and bursting out. Back shows the boss from behind, as it looks when it heads up the screen after you. Full cycle runs them all in turn.</footer>
+</div>
+
+<script>
+const FRAMES = /*FRAMES*/{};
+// move: seconds per walk step; extra: names of frames 5-8; special: the signature move as [frame, seconds] pairs
+const BOSSES = [
+  { id: 'gnawbelly', floor: 2, name: 'Gnawbelly, the Mole Tyrant', how: 'Tunnels underground and bursts up under you. Only hittable above ground.', move: .2,
+    extra: ['Step', 'Step', 'Tunnelling', 'Emerge'], special: [[0, .3], [4, .25], [5, .25], [6, .7], [7, .5], [0, .3]] },
+  { id: 'mycelia', floor: 3, name: 'Mycelia, the Rotcap Heart', how: 'Rooted. Its poison carpet spreads; it inhales, exhales, then its cap opens.', move: .35,
+    extra: ['Sway', 'Sway', 'Lash', 'Plunge'], special: [[6, .18], [7, .18], [6, .18], [7, .18], [6, .18], [7, .4], [0, .4]] },
+  { id: 'snapjaw', floor: 4, name: 'Old Snapjaw', how: 'Swims the moat, lunges out to bite, spins its shell round the island.', move: .18,
+    extra: ['Crawl', 'Crawl', 'Shell spin', 'Swimming'], special: [[7, .9], [3, .35], [0, .4], [6, .9], [0, .4]] },
+  { id: 'harvest', floor: 5, name: 'The Hollow Harvest', how: 'Shielded while its lanterns burn. Crow lanes, a scythe cross, hay bales.', move: .3,
+    extra: ['Float', 'Float', 'Crow burst', 'Cross cut'], special: [[6, .9], [0, .4], [7, .7], [3, .35], [0, .4]] },
+  { id: 'vespa', floor: 6, name: 'Queen Vespa', how: 'Untouchable in flight; stingers rain from her shadow. Strike when she lands.', move: .07,
+    extra: ['Wings mid', 'Wings mid', 'Landing', 'Resting'], special: [[6, .45], [7, 1.1], [6, .3], [0, .3]] },
+  { id: 'grimfang', floor: 7, name: 'Grimfang, the Briar Stalker', how: 'Stalks from the brambles, pounces, then rakes with a three-hit combo.', move: .12,
+    extra: ['Gallop', 'Gallop', 'Howl', 'Landing'], special: [[6, 1], [2, .5], [3, .35], [7, .35], [0, .4]] },
+  { id: 'nyxwing', floor: 8, name: 'Nyxwing, the Dusk Moth', how: 'Spiralling scale streams, a sweeping moonbeam and shoving wing gusts.', move: .14,
+    extra: ['Wings mid', 'Wings mid', 'Gust', 'Channel'], special: [[6, .6], [3, .35], [0, .3], [7, 1], [0, .3]] },
+  { id: 'oakheart', floor: 9, name: 'Oakheart, the Forest Guardian', how: 'Rooted by three knots; root lines and snares. Uprooted, its stomps send rings.', move: .2,
+    extra: ['Step', 'Step', 'Rooted', 'Uproot'], special: [[6, .9], [7, .8], [0, .3], [4, .2], [1, .2], [5, .2]] },
+];
+// bosses that never turn away say why instead of showing a back view
+const NO_BACK = { mycelia: 'Rooted: never turns', nyxwing: 'Always faces the arena' };
+const hasBack = b => !NO_BACK[b.id];
+const LOOP = [0, 4, 1, 5];
+const POSE = b => ['Move', 'Move', 'Wind-up', 'Strike', ...b.extra, ...(hasBack(b) ? ['Back step', 'Back step', 'Back wind-up', 'Back strike'] : [])];
+const SCALE = 3;
+let mode = 'full';
+const load = src => new Promise(res => { const im = new Image(); im.onload = () => res(im); im.onerror = () => res(null); im.src = src; });
+
+async function build() {
+  const grid = document.getElementById('grid');
+  const cards = [];
+  for (const b of BOSSES) {
+    const ims = await Promise.all(Array.from({ length: hasBack(b) ? 12 : 8 }, (_, i) => load(FRAMES[`${b.id}_${i}`])));
+    if (ims.some(i => !i)) continue;
+    const W = Math.max(...ims.map(i => i.width)), H = Math.max(...ims.map(i => i.height)), names = POSE(b);
+    const card = document.createElement('article'); card.className = 'card';
+    card.innerHTML = `<div class="stage"><span class="pose">Move</span><span class="floor">Floor ${b.floor}</span><canvas width="${W * SCALE}" height="${H * SCALE}" aria-label="${b.name}, animated"></canvas></div>
+      <div class="info"><h2>${b.name}</h2><p>${b.how}</p></div><div></div>
+      <div class="strip">${names.map((p, i) => `<figure><canvas width="${W}" height="${H}" aria-label="${b.name}, ${p} frame"></canvas><figcaption>${i + 1} · ${p}</figcaption></figure>`).join('')}</div>`;
+    grid.appendChild(card);
+    const big = card.querySelector('.stage canvas'), bx = big.getContext('2d'); bx.imageSmoothingEnabled = false;
+    // the four still frames, each anchored at the feet like in the game
+    card.querySelectorAll('.strip canvas').forEach((c, i) => { const x = c.getContext('2d'); x.imageSmoothingEnabled = false; x.drawImage(ims[i], Math.round((W - ims[i].width) / 2), H - ims[i].height); });
+    cards.push({ b, ims, W, H, bx, big, names, pose: card.querySelector('.pose'), figs: [...card.querySelectorAll('.strip figure')], last: -1 });
+  }
+  const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const t0 = performance.now();
+  // play a list of [frame, seconds] pairs on a loop
+  const seqAt = (seq, t) => { const total = seq.reduce((s, q) => s + q[1], 0); let k = t % total; for (const [f, d] of seq) { if (k < d) return f; k -= d; } return seq[0][0]; };
+  const frameAt = (c, t) => {
+    const walk = LOOP[Math.floor(t / c.b.move) % 4];
+    const attack = [[2, .7], [3, .35], [0, .4]];
+    // from behind: two steps (each held twice as long as a front step, since it's a two-frame loop), then the attack
+    const backAttack = [[10, .7], [11, .35], [8, .4]];
+    const back = tt => tt % 3.85 < 2.4 ? 8 + Math.floor(tt / (c.b.move * 2)) % 2 : seqAt(backAttack, tt % 3.85 - 2.4);
+    if (mode === 'move') return walk;
+    if (mode === 'attack') return seqAt(attack, t);
+    if (mode === 'special') return seqAt(c.b.special, t);
+    if (mode === 'back') return hasBack(c.b) ? back(t) : walk;
+    // full cycle: walk 2.4 s, attack, the signature move, then the back view
+    const sp = c.b.special.reduce((s, q) => s + q[1], 0), bk = hasBack(c.b) ? 3.85 : 0, cyc = t % (2.4 + 1.45 + sp + bk);
+    if (cyc < 2.4) return walk;
+    if (cyc < 3.85) return seqAt(attack, cyc - 2.4);
+    if (cyc < 3.85 + sp) return seqAt(c.b.special, cyc - 3.85);
+    return back(cyc - 3.85 - sp);
+  };
+  const draw = now => {
+    const t = (now - t0) / 1000;
+    for (const c of cards) {
+      const f = reduced ? 0 : frameAt(c, t); if (f === c.last) continue; c.last = f;
+      const im = c.ims[f];
+      c.bx.clearRect(0, 0, c.big.width, c.big.height);
+      c.bx.drawImage(im, Math.round((c.W - im.width) / 2) * SCALE, (c.H - im.height) * SCALE, im.width * SCALE, im.height * SCALE);
+      c.pose.textContent = mode === 'back' && !hasBack(c.b) ? NO_BACK[c.b.id] : c.names[f]; c.figs.forEach((fg, i) => fg.classList.toggle('on', i === f));
+    }
+    requestAnimationFrame(draw);
+  };
+  requestAnimationFrame(draw);
+}
+document.querySelectorAll('.modes button').forEach(btn => btn.addEventListener('click', () => {
+  mode = btn.dataset.mode;
+  document.querySelectorAll('.modes button').forEach(b => b.setAttribute('aria-pressed', String(b === btn)));
+}));
+build();
+</script>
