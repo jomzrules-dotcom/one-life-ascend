@@ -5305,7 +5305,8 @@ function render() {
   if (G.allies) actors.push(...G.allies);
   if (G.inHall && m.statues) actors.push(...m.statues);
   // the rim of the woods below a path, a strip per tile row, sorted by where its bushes stand
-  if (m.fore) for (const j of m.foreRows) { const top = j * TS - 4; if (top + TS > cy && top < cy + H) actors.push({ k: 'fore', y: j * TS + 12, top }); }
+  // (half a pixel above the trees rooted in that row, so on a tie the tree stands in front of the bushes)
+  if (m.fore) for (const j of m.foreRows) { const top = j * TS - 4; if (top + TS > cy && top < cy + H) actors.push({ k: 'fore', y: j * TS + 11.5, top }); }
   actors.sort((a, b) => a.y - b.y);
   const rimX = Math.max(0, Math.floor(cx)), rimW = Math.min(W + 2, m.w - rimX);
   for (const a of actors) {
