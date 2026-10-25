@@ -1784,7 +1784,7 @@ function renderMap(m) {
     if (isOuter(i, j - 1)) { a.fillStyle = 'rgba(0,0,0,.34)'; a.fillRect(X, Y - 2, TS, 7); }
     if (isOuter(i - 1, j)) { a.fillStyle = 'rgba(0,0,0,.2)'; a.fillRect(X - 1, Y, 4, TS); }
     if (isOuter(i + 1, j)) { a.fillStyle = 'rgba(0,0,0,.16)'; a.fillRect(X + TS - 3, Y, 4, TS); }
-    if (isOuter(i, j + 1)) { a.fillStyle = 'rgba(0,0,0,.1)'; a.fillRect(X, Y + TS - 2, TS, 3); }
+    if (isOuter(i, j + 1) && !(m.cfg && m.cfg.walls === 'forest')) { a.fillStyle = 'rgba(0,0,0,.1)'; a.fillRect(X, Y + TS - 2, TS, 3); }   // (woods below cast none up onto the path)
   }
   x.save(); x.filter = 'blur(3px)'; x.drawImage(ao, 0, 0); x.restore();
   paintWalls(x, m, Z, arena, wall, isOuter);
@@ -1891,9 +1891,10 @@ function layerTex(x, tex, mask, rim, filter) {
 function paintComposition(x, m, Z, wall) {
   const w = m.w, h = m.h, cols = m.cols, rows = m.rows, P = p => [p.x * TS + 8, p.y * TS + 8];
   const noise = valueNoise(w, h, 22);
-  // lush, darker grass at the foot of the walls
-  const wm = scratch('comp', w, h), wc = wm.getContext('2d'); wc.fillStyle = '#fff';
-  for (let j = 0; j < rows; j++) for (let i = 0; i < cols; i++) if (wall(i, j)) wc.fillRect(i * TS, j * TS, TS, TS);
+  // lush, darker grass at the foot of the walls (not along the forest's edge below a path, where it reads as a shadow
+  // cast up out of the woods)
+  const wm = scratch('comp', w, h), wc = wm.getContext('2d'), rimless = m.cfg && m.cfg.walls === 'forest'; wc.fillStyle = '#fff';
+  for (let j = 0; j < rows; j++) for (let i = 0; i < cols; i++) if (wall(i, j) && !(rimless && !wall(i, j - 1))) wc.fillRect(i * TS, j * TS, TS, TS);
   layerTex(x, groundTex(m), crispMask(wm, 10, noise, .8, .3), null, 'brightness(0.78) saturate(1.25)');
   // worn dirt: trails and clearings
   const dm = scratch('comp', w, h), dc = dm.getContext('2d'); dc.strokeStyle = dc.fillStyle = '#fff'; dc.lineCap = dc.lineJoin = 'round';
@@ -2278,7 +2279,7 @@ function paintWalls(x, m, Z, arena, wall, isOuter) {
       // along walls you walk beneath and sparse along walls below you, where a crown would hide the path
       if (forest && m.objs && R() < (wall(i, j + 1) ? .18 : .42) && !trees.some(t => Math.abs(t.x - cx) < 20 && Math.abs(t.y - cy) < 14)) {
         const k = pick(['m2_oak0', 'm2_oak0', 'm2_oak1', 'm2_oak1', 'm2_birch', 'm2_pine']), a = art(k);
-        x.fillStyle = 'rgba(6,20,10,.32)'; x.beginPath(); x.ellipse(cx + 2, cy + 6, a.width * .4, 4, 0, 0, TAU); x.fill();
+        if (!wall(i, j + 1)) { x.fillStyle = 'rgba(6,20,10,.32)'; x.beginPath(); x.ellipse(cx + 2, cy + 6, a.width * .4, 4, 0, 0, TAU); x.fill(); }
         const t = { k: 'deco', a: k, tree: true, ph: rand(0, TAU), x: cx, y: cy + 6 }; m.objs.push(t); trees.push(t); return;
       }
       if (forest && R() < .16) return;
@@ -2302,7 +2303,8 @@ function paintWalls(x, m, Z, arena, wall, isOuter) {
     // the filter only ever wraps one sprite draw: on the hand-drawn fallback (made of many small shapes) it would
     // run for every shape and take seconds on a big map, so the back row is shaded with a dark wash instead
     if (pr) {
-      if (!back) { x.fillStyle = 'rgba(0,0,0,.24)'; x.beginPath(); x.ellipse(cx + 1, cy + 7, pr.width * .4, 4, 0, 0, TAU); x.fill(); }
+      // (seen from above, the forest's bushes and boulders cast no shadow onto the woods behind them, only onto open ground)
+      if (!back && !(forest && wall(i, j + 1))) { x.fillStyle = 'rgba(0,0,0,.24)'; x.beginPath(); x.ellipse(cx + 1, cy + 7, pr.width * .4, 4, 0, 0, TAU); x.fill(); }
       if (flt) x.filter = flt;
       x.drawImage(pr, Math.round(cx - pr.width / 2), Math.round(cy - pr.height / 2 - 1));
       if (st === 'bloom' && !back && !isRock) m.flowerSpots.push({ x: cx, y: cy - 4 });
@@ -2333,11 +2335,12 @@ function paintWalls(x, m, Z, arena, wall, isOuter) {
     lay();
   }
   // the woods below a path stand between you and it: their front rim (canopy and bushes, exactly as painted) is
-  // drawn again over the actors, so a tree rooted there rises from behind the foliage instead of standing on the
-  // treetops, and you pass behind the rim
+  // kept again in m.fore and drawn with the actors one tile-high strip per row (render), so you pass behind the
+  // rim while anything rooted further south, like a tree deeper in the woods, stands in front of it
   if (fmask) {
-    const bm = scratch('band', m.w, m.h), b = bm.getContext('2d'); b.fillStyle = '#fff';
-    for (let j = 1; j < rows; j++) for (let i = 0; i < cols; i++) if (wall(i, j) && !wall(i, j - 1)) b.fillRect(i * TS - 2, j * TS - 4, TS + 4, TS + 6);
+    const bm = scratch('band', m.w, m.h), b = bm.getContext('2d'), fr = new Set(); b.fillStyle = '#fff';
+    for (let j = 1; j < rows; j++) for (let i = 0; i < cols; i++) if (wall(i, j) && !wall(i, j - 1)) { b.fillRect(i * TS - 2, j * TS - 4, TS + 4, TS + 6); fr.add(j); }
+    m.foreRows = [...fr].sort((p, q) => p - q);
     b.globalCompositeOperation = 'destination-in'; b.drawImage(fmask, 0, 0); b.globalCompositeOperation = 'source-over';
     const fore = mk(m.w, m.h), f = fore.getContext('2d');
     f.drawImage(x.canvas, 0, 0); f.globalCompositeOperation = 'destination-in'; f.drawImage(bm, 0, 0); f.globalCompositeOperation = 'source-over';
@@ -5301,7 +5304,10 @@ function render() {
   if (G.sprouts) actors.push(...G.sprouts);
   if (G.allies) actors.push(...G.allies);
   if (G.inHall && m.statues) actors.push(...m.statues);
+  // the rim of the woods below a path, a strip per tile row, sorted by where its bushes stand
+  if (m.fore) for (const j of m.foreRows) { const top = j * TS - 4; if (top + TS > cy && top < cy + H) actors.push({ k: 'fore', y: j * TS + 12, top }); }
   actors.sort((a, b) => a.y - b.y);
+  const rimX = Math.max(0, Math.floor(cx)), rimW = Math.min(W + 2, m.w - rimX);
   for (const a of actors) {
     if (a === G.p) { drawPlayer(); if (night && !G.dying) drawHandTorch(); }
     else if (a === G.merchant) drawMerchant(a, t);
@@ -5309,12 +5315,12 @@ function render() {
     else if (a.k === 'chest') drawChest(a, t);
     else if (a.k === 'torch') drawTorch(a, t);
     else if (a.k === 'deco') drawDeco(a);
+    else if (a.k === 'fore') ctx.drawImage(m.fore, rimX, a.top, rimW, TS, rimX, a.top, rimW, TS);
     else if (a.k === 'sprout') drawSprout(a);
     else if (a.k === 'statue') drawStatue(a, t);
     else if (a.ally) drawAlly(a);
     else drawMob(a);
   }
-  if (m.fore) ctx.drawImage(m.fore, 0, 0);
   if (G.bfx) drawBossFx();
   drawWild(); drawCritters();
   // snared: roots wrapped round the hero's feet
