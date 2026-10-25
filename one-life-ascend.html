@@ -690,11 +690,14 @@ const ARTIMG = {};
 function loadArt() {
   return Promise.all(Object.entries(ART).map(([k, src]) => new Promise(res => {
     const im = new Image();
-    im.onload = () => { const c = mk(im.width, im.height); c.getContext('2d').drawImage(im, 0, 0); ARTIMG[k] = c; res(); };
+    im.onload = () => { const c = mk(im.width, im.height); c.getContext('2d').drawImage(im, 0, 0); c.seamless = SEAMLESS.includes(k); ARTIMG[k] = c; res(); };
     im.onerror = () => res(); im.src = src;
   })));
 }
 const art = k => ARTIMG[k] || null;
+// textures Codex painted to tile seamlessly: they repeat as they are, since the mirrored tiling the older textures use
+// would turn their top-left light and upright grass tufts upside down on every other row (tileTex)
+const SEAMLESS = ['m2_grass', 'm2_trail', 'm2_canopy'];
 // 1px dark outline around a sprite (the canvas grows by 2px each way).
 function outline(c, col = '#120d18') {
   const o = mk(c.width + 2, c.height + 2), x = o.getContext('2d'), s = sil(c, col);
@@ -1798,8 +1801,9 @@ function renderMap(m) {
   }
   mx.putImageData(id, 0, 0); m.mini = mc;
 }
-// tile a texture with alternate copies mirrored, so the edges always meet without a seam
+// tile a texture with alternate copies mirrored, so the edges always meet without a seam (a seamless one just repeats)
 function tileTex(x, tex, w, h) {
+  if (tex.seamless) { x.save(); x.fillStyle = x.createPattern(tex, 'repeat'); x.fillRect(0, 0, w, h); x.restore(); return; }
   for (let by = 0, j = 0; by < h; by += tex.height, j++) for (let bx = 0, i = 0; bx < w; bx += tex.width, i++) {
     x.save(); x.translate(bx + (i % 2 ? tex.width : 0), by + (j % 2 ? tex.height : 0)); x.scale(i % 2 ? -1 : 1, j % 2 ? -1 : 1); x.drawImage(tex, 0, 0); x.restore();
   }
@@ -1820,7 +1824,7 @@ function groundTex(m) {
   const k = m.cfg && m.cfg.ground, ga = m.z === 0 && GROUND_ART[k], own = ga && art(ga[0]);
   if (own) {
     if (!ga[1]) return own;
-    if (!groundCache['art:' + k]) { const c = mk(own.width, own.height), x = c.getContext('2d'); x.filter = ga[1]; x.drawImage(own, 0, 0); groundCache['art:' + k] = c; }
+    if (!groundCache['art:' + k]) { const c = mk(own.width, own.height), x = c.getContext('2d'); x.filter = ga[1]; x.drawImage(own, 0, 0); c.seamless = own.seamless; groundCache['art:' + k] = c; }
     return groundCache['art:' + k];
   }
   const tex = m.z === 0 && art('ground_grass');
@@ -2198,7 +2202,7 @@ function paintWalls(x, m, Z, arena, wall, isOuter) {
   const dm = scratch('walls', m.w, m.h), d = dm.getContext('2d');
   let fmask = null;
   if (forest) {
-    if (!groundCache.canopy) { const t = art('m2_canopy'), c = mk(t.width, t.height), cx = c.getContext('2d'); cx.filter = 'brightness(.78) saturate(1.08) hue-rotate(4deg)'; cx.drawImage(t, 0, 0); groundCache.canopy = c; }
+    if (!groundCache.canopy) { const t = art('m2_canopy'), c = mk(t.width, t.height), cx = c.getContext('2d'); cx.filter = 'brightness(.78) saturate(1.08) hue-rotate(4deg)'; cx.drawImage(t, 0, 0); c.seamless = t.seamless; groundCache.canopy = c; }
     d.fillStyle = '#fff';
     for (let j = 0; j < rows; j++) for (let i = 0; i < cols; i++) if (wall(i, j)) d.fillRect(i * TS - 1, j * TS - 2, TS + 2, TS + 2);
     fmask = crispMask(dm, 5, valueNoise(m.w, m.h, 9), 1, .5);
